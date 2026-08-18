@@ -1,0 +1,36 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 번들 구조 검사
+        run: bash tests/test_hermes_skill.sh
+
+      - name: 설치 플래그 검사
+        run: bash tests/test_install_flags.sh
+
+      - name: 제거 플래그 검사
+        run: bash tests/test_uninstall_flags.sh
+
+      # 사본이 본진과 어긋나면 여기서 깨진다. 이 저장소가 존재하는 조건이다.
+      - name: 룰북 드리프트 검사 (UPSTREAM 핀)
+        run: python3 scripts/check_upstream_drift.py
+
+      - name: 드리프트 검사 자체 검증
+        run: bash tests/test_drift_check.sh

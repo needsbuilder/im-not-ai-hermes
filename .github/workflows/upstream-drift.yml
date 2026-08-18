@@ -1,0 +1,76 @@
+name: upstream-drift
+
+# 조기경보. PR CI 는 고정 태그를 보지만, 이 작업은 본진 main 을 본다.
+# 본진이 룰북을 고쳤는데 우리가 모르는 상태를 사용자보다 먼저 알아채는 것이 목적이다.
+on:
+  schedule:
+    - cron: "0 0 * * 1"   # 매주 월요일 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 본진 main 대비 드리프트 검사
+        id: drift
+        run: |
+          set +e
+          python3 scripts/check_upstream_drift.py --ref main > drift.log 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat drift.log
+
+      - name: 드리프트 이슈 열기
+        if: steps.drift.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('drift.log', 'utf8');
+            const code = '${{ steps.drift.outputs.exit_code }}';
+            const reason = {
+              '1': '룰북 사본이 본진 main 과 어긋났다',
+              '2': '룰북 구조가 바뀌었다(경계 마커 없음)',
+              '3': '본진 룰북을 가져오지 못했다',
+            }[code] || `드리프트 검사가 코드 ${code} 로 실패했다`;
+            const title = `upstream drift: ${reason}`;
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'upstream-drift',
+            });
+            const body = [
+              `주간 드리프트 검사가 실패했다 (exit ${code}).`,
+              '',
+              '```',
+              log.trim().slice(0, 55000),
+              '```',
+              '',
+              '대응: 본진의 `.claude/skills/humanize-korean/references/quick-rules.md` 변경을 확인하고,',
+              'A~J 본문을 `skills/humanize-korean/references/quick-rules.md` 로 다시 가져온 뒤',
+              '`SKILL.md` 절차와 충돌하지 않는지 보고 `UPSTREAM` 핀의 ref 를 올린다.',
+            ].join('\n');
+
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['upstream-drift'],
+              });
+            }

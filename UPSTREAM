@@ -1,0 +1,11 @@
+# 본진(upstream) 고정 핀 — scripts/check_upstream_drift.py 가 읽는다.
+# 룰북의 단일 진실 원천(SSOT)은 본진이고, 이 저장소는 사본을 배포할 뿐이다.
+# 사본이 본진과 어긋나면 CI 가 깨진다. 핀을 올릴 때는 사본도 함께 갱신한다.
+
+repo=epoko77-ai/im-not-ai
+ref=v2.3.1
+canonical_rules=.claude/skills/humanize-korean/references/quick-rules.md
+bundled_rules=skills/humanize-korean/references/quick-rules.md
+
+# 비교 범위: 룰북의 A~J 패턴 본문(`## A. ` 부터 `## 자체검증` 직전까지).
+# 헤더·푸터는 런타임별로 다를 수 있어 제외한다 — 본진 build_quick_rules.py 의 생성 구조와 같다.
