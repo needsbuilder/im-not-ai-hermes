@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "test-skill": { "command": "bash tests/test_hermes_skill.sh" },
+    "test-install": { "command": "bash tests/test_install_flags.sh" },
+    "test-uninstall": { "command": "bash tests/test_uninstall_flags.sh" },
+    "test-drift": { "command": "bash tests/test_drift_check.sh" }
+  },
+  "metadataGeneration": {
+    "title": { "instructions": "Use a short, outcome-focused title." },
+    "branchName": { "instructions": "Use a task-appropriate feat/, fix/, chore/, or docs/ prefix followed by a short kebab-case English description." },
+    "commitMessage": { "instructions": "Use Conventional Commits with an appropriate scope and an imperative subject." },
+    "pullRequest": { "instructions": "Start with a one-sentence summary, then include a Testing section with the commands run and their results." }
+  }
+}
